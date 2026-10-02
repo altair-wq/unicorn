@@ -5,6 +5,9 @@ chain of floating candy planets while other unicorns hop around with you.
 Collect stars, chain them mid-air for combos, and reach each sector's rainbow
 gate (+10 stars, +15 seconds) before the 90-second timer runs out.
 
+Planets start close together and the gaps widen a little with every planet,
+levelling off around sector 6.
+
 Open `index.html` in a browser to play. There is no build step.
 
 ## Controls
@@ -26,8 +29,9 @@ for half a second starts sprinting.
 
 - `core.js`: physics, world generation and game rules (no DOM, runs in Node too)
 - `game.js`: rendering, input, sound and screens
-- `test/reachability.test.js`: a bot plays 40 random worlds with the real
-  physics to check every gap can be cleared, plus jump-height checks
+- `test/reachability.test.js`: a bot plays 40 random worlds through 7 sectors with the real
+  physics to check every gap can be cleared, plus jump-height and
+  gap-ramp checks
 
 ```sh
 node test/reachability.test.js

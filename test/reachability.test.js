@@ -9,14 +9,14 @@ const { C } = U;
 //    and each sector has the expected number of planets.
 function staticCheck(seed) {
   const w = U.createWorld(seed);
-  for (let i = 0; i < 4; i++) U.genSector(w);
-  assert.strictEqual(w.planets.length, C.PLANETS_PER_SECTOR * 6);
+  for (let i = 0; i < 6; i++) U.genSector(w);
+  assert.strictEqual(w.planets.length, C.PLANETS_PER_SECTOR * 8);
   for (let i = 1; i < w.planets.length; i++) {
     const a = w.planets[i - 1], b = w.planets[i];
     assert.ok(b.x - b.r > a.x + a.r, `planets overlap (seed ${seed}, #${i})`);
     assert.ok(U.canReach(a, b), `unreachable gap (seed ${seed}, #${i})`);
   }
-  assert.strictEqual(w.gates.length, 6);
+  assert.strictEqual(w.gates.length, 8);
 }
 
 // 2. Dynamic check: a bot plays the real stepGame. It sprints to the
@@ -70,11 +70,11 @@ let failures = 0;
 const SEEDS = 40;
 for (let seed = 1; seed <= SEEDS; seed++) {
   staticCheck(seed);
-  const r = botRun(seed, 4);
+  const r = botRun(seed, 7);
   if (!r.ok) { failures++; console.log('bot failed', seed, r); }
 }
 assert.strictEqual(failures, 0, `${failures} of ${SEEDS} bot runs failed`);
-console.log(`ok: ${SEEDS} worlds, 4 sectors each, all gaps cleared by the bot`);
+console.log(`ok: ${SEEDS} worlds, 7 sectors each, all gaps cleared by the bot`);
 
 // 3. Mechanics sanity.
 {
@@ -113,4 +113,27 @@ console.log(`ok: ${SEEDS} worlds, 4 sectors each, all gaps cleared by the bot`);
   }
   assert.ok(Math.abs(sup / full - 1.5) < 0.1, `super bounce ratio ${sup / full}`);
   console.log(`ok: jump ${peak.toFixed(0)}px, hop ${hop.toFixed(0)}px, super ${sup.toFixed(0)}px`);
+}
+
+// 4. Gaps start small and widen over the first sectors, then level off.
+{
+  const avg = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const bySector = [[], [], [], [], [], [], [], []];
+  for (let seed = 1; seed <= SEEDS; seed++) {
+    const w = U.createWorld(seed);
+    for (let i = 0; i < 6; i++) U.genSector(w);
+    for (let i = 1; i < w.planets.length; i++) {
+      const a = w.planets[i - 1], b = w.planets[i];
+      const gap = (b.x - b.r) - (a.x + a.r);
+      const d = U.difficulty(i);
+      const lo = C.GAP_START[0] + (C.GAP_END[0] - C.GAP_START[0]) * d;
+      const hi = C.GAP_START[1] + (C.GAP_END[1] - C.GAP_START[1]) * d;
+      assert.ok(gap >= lo - 1 && gap <= hi + 1, `gap ${gap.toFixed(0)} outside ${lo.toFixed(0)}-${hi.toFixed(0)} at planet ${i}`);
+      bySector[b.sector].push(gap);
+    }
+  }
+  const avgs = bySector.map(avg);
+  for (let s = 1; s < 5; s++) assert.ok(avgs[s] > avgs[s - 1], `sector ${s + 1} gaps not wider than sector ${s}`);
+  assert.ok(Math.abs(avgs[7] - avgs[6]) < 15, 'gaps keep growing after the ramp');
+  console.log('ok: average gap per sector ' + avgs.map((g) => g.toFixed(0)).join(', '));
 }

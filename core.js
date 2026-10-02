@@ -30,6 +30,12 @@
     GROUND_NY: -0.45, // contact normal y below this counts as standing
     SNAP: 10,
     STAR_R: 30,
+    // Gaps start tiny and widen with every planet until RAMP_PLANETS in.
+    RAMP_PLANETS: 90,
+    GAP_START: [25, 80],
+    GAP_END: [110, 290],
+    RISE_START: 60,
+    RISE_END: 160,
     PLANETS_PER_SECTOR: 18,
     START_TIME: 90,
     GATE_TIME: 15,
@@ -117,11 +123,14 @@
     w.stars.push({ x, y, kind: kind || 'star', taken: false, phase: w.rng() * 6.28 });
   }
 
+  // 0 at the first planet, 1 once the ramp is done.
+  function difficulty(n) {
+    return Math.min(1, n / C.RAMP_PLANETS);
+  }
+
   function genSector(w) {
     const s = w.sectorsGenerated++;
     const rng = w.rng;
-    const gapMin = 45 + Math.min(s * 8, 70);
-    const gapMax = Math.min(170 + s * 15, 290);
     for (let i = 0; i < C.PLANETS_PER_SECTOR; i++) {
       const prev = w.planets[w.planets.length - 1];
       let pl = null;
@@ -129,10 +138,14 @@
         pl = makePlanet(w, 0, 520, 150, s, i);
       } else {
         const isGate = i === C.PLANETS_PER_SECTOR - 1;
+        const d = difficulty(w.nextId);
+        const gapMin = C.GAP_START[0] + (C.GAP_END[0] - C.GAP_START[0]) * d;
+        const gapMax = C.GAP_START[1] + (C.GAP_END[1] - C.GAP_START[1]) * d;
+        const rise = C.RISE_START + (C.RISE_END - C.RISE_START) * d;
         for (let attempt = 0; attempt < 60 && !pl; attempt++) {
           const r = isGate ? 120 + rng() * 20 : 55 + rng() * 80;
           const gap = gapMin + rng() * (gapMax - gapMin);
-          const top = clamp(prev.top + (rng() * 340 - 160), 220, 760);
+          const top = clamp(prev.top + (rng() * 2 - 1) * rise + rise * 0.1, 220, 760);
           const cand = makePlanet(w, prev.x + prev.r + gap + r, top, r, s, i);
           if (canReach(prev, cand)) pl = cand;
           else w.nextId--;
@@ -437,7 +450,7 @@
   }
 
   const api = {
-    C, mulberry32, surfaceY, createWorld, genSector, canReach, createPlayer,
+    C, mulberry32, surfaceY, difficulty, createWorld, genSector, canReach, createPlayer,
     emptyInput, stepPlayer, createGame, stepGame, nextGate, sectorProgress, planetById, fallLimit,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
