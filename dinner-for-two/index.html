@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dinner for Two</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #fff1eb, #fde2e4);
+      color: #333;
+      display: flex;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+    main { width: 100%; max-width: 720px; }
+    h1 { text-align: center; margin: 0 0 4px; color: #c2410c; }
+    .tagline { text-align: center; margin: 0 0 24px; color: #777; }
+    .people { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 560px) { .people { grid-template-columns: 1fr; } }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    }
+    .card h2 { margin: 0 0 12px; font-size: 1.1rem; }
+    label { display: block; font-size: 0.9rem; margin: 12px 0 4px; color: #555; }
+    select, input {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: #fafafa;
+    }
+    button {
+      display: block;
+      width: 100%;
+      margin: 20px 0;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+      background: #ea580c;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    button:hover { background: #c2410c; }
+    #result { display: none; }
+    #result.ok { border-left: 6px solid #16a34a; }
+    #result.conflict { border-left: 6px solid #dc2626; }
+    #result ul { margin: 8px 0 0; padding-left: 20px; }
+    #result li { margin: 4px 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>🍽️ Dinner for Two</h1>
+    <p class="tagline">Enter both preferences and find a plan in one click.</p>
+
+    <div class="people">
+      <div class="card">
+        <h2>Person 1</h2>
+        <label for="day1">Preferred day</label>
+        <select id="day1"><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
+        <label for="cuisine1">Cuisine</label>
+        <select id="cuisine1"><option>Italian</option><option>Japanese</option><option>Any</option></select>
+        <label for="budget1">Max budget per person ($)</label>
+        <input id="budget1" type="number" min="1" value="40">
+      </div>
+
+      <div class="card">
+        <h2>Person 2</h2>
+        <label for="day2">Preferred day</label>
+        <select id="day2"><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
+        <label for="cuisine2">Cuisine</label>
+        <select id="cuisine2"><option>Italian</option><option>Japanese</option><option>Any</option></select>
+        <label for="budget2">Max budget per person ($)</label>
+        <input id="budget2" type="number" min="1" value="30">
+      </div>
+    </div>
+
+    <button id="find">Find Our Dinner Plan</button>
+
+    <div id="result" class="card"></div>
+  </main>
+
+  <script>
+    function value(id) { return document.getElementById(id).value; }
+
+    document.getElementById('find').addEventListener('click', function () {
+      var day1 = value('day1'), day2 = value('day2');
+      var cuisine1 = value('cuisine1'), cuisine2 = value('cuisine2');
+      var budget1 = Number(value('budget1')), budget2 = Number(value('budget2'));
+      var problems = [];
+
+      if (day1 !== day2) {
+        problems.push('Day: Person 1 wants ' + day1 + ', Person 2 wants ' + day2 + '. Pick the same day.');
+      }
+
+      var cuisine;
+      if (cuisine1 === cuisine2) cuisine = cuisine1 === 'Any' ? 'Any (your choice!)' : cuisine1;
+      else if (cuisine1 === 'Any') cuisine = cuisine2;
+      else if (cuisine2 === 'Any') cuisine = cuisine1;
+      else problems.push('Cuisine: ' + cuisine1 + ' vs. ' + cuisine2 + '. One of you could switch or choose "Any".');
+
+      if (!(budget1 > 0) || !(budget2 > 0)) {
+        problems.push('Budget: both people need to enter a budget greater than $0.');
+      }
+
+      var result = document.getElementById('result');
+      result.style.display = 'block';
+
+      if (problems.length) {
+        result.className = 'card conflict';
+        result.innerHTML = '<h2>⚠️ Almost there — a few things to adjust</h2><ul>' +
+          problems.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul>';
+      } else {
+        result.className = 'card ok';
+        result.innerHTML = '<h2>🎉 Your dinner plan</h2><ul>' +
+          '<li><strong>Day:</strong> ' + day1 + '</li>' +
+          '<li><strong>Cuisine:</strong> ' + cuisine + '</li>' +
+          '<li><strong>Shared budget:</strong> up to $' + Math.min(budget1, budget2) + ' per person</li>' +
+          '</ul>';
+      }
+    });
+  </script>
+</body>
+</html>
