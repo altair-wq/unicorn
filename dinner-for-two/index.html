@@ -4,131 +4,292 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dinner for Two</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: linear-gradient(135deg, #fff1eb, #fde2e4);
-      color: #333;
-      display: flex;
-      justify-content: center;
-      padding: 24px 16px;
-    }
-    main { width: 100%; max-width: 720px; }
-    h1 { text-align: center; margin: 0 0 4px; color: #c2410c; }
-    .tagline { text-align: center; margin: 0 0 24px; color: #777; }
-    .people { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 560px) { .people { grid-template-columns: 1fr; } }
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-    }
-    .card h2 { margin: 0 0 12px; font-size: 1.1rem; }
-    label { display: block; font-size: 0.9rem; margin: 12px 0 4px; color: #555; }
-    select, input {
-      width: 100%;
-      padding: 10px;
-      font-size: 1rem;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      background: #fafafa;
-    }
-    button {
-      display: block;
-      width: 100%;
-      margin: 20px 0;
-      padding: 14px;
-      font-size: 1.05rem;
-      font-weight: 600;
-      color: #fff;
-      background: #ea580c;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-    button:hover { background: #c2410c; }
-    #result { display: none; }
-    #result.ok { border-left: 6px solid #16a34a; }
-    #result.conflict { border-left: 6px solid #dc2626; }
-    #result ul { margin: 8px 0 0; padding-left: 20px; }
-    #result li { margin: 4px 0; }
-  </style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&display=swap">
+<style>
+  /* Layout: two preference cards side by side, one action, a plan card that checks each choice */
+  :root {
+    --bg: #f6f2f5; --surface: #ffffff; --fg: #2a2230; --muted: #6d6175;
+    --line: #e4dbe6; --soft: #f1e8ef; --accent: #7a2e5c; --accent-hover: #5f2347; --on-accent: #ffffff;
+    --ok: #1f7a4d; --ok-soft: #e3f3ea; --warn: #b4441f; --warn-soft: #fbe9e2;
+    --p1: #2f6fb0; --p2: #c2602a; --map-bg: #efe9ee; --map-street: #ffffff; --park: #cfe5cf; --water: #c9dcef;
+    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: #1b161e; --surface: #262029; --fg: #f1eaf3; --muted: #a99db0;
+    --line: #3a3140; --soft: #31283a; --accent: #d77fb0; --accent-hover: #e79bc5; --on-accent: #1b161e;
+    --ok: #6fd6a0; --ok-soft: #1f3329; --warn: #f39a74; --warn-soft: #3a2520;
+    --p1: #7fb4ec; --p2: #f0a072; --map-bg: #2c2430; --map-street: #3e3444; --park: #2c4232; --water: #263a52; color-scheme: dark;
+  } }
+  :root[data-theme="dark"] {
+    --bg: #1b161e; --surface: #262029; --fg: #f1eaf3; --muted: #a99db0;
+    --line: #3a3140; --soft: #31283a; --accent: #d77fb0; --accent-hover: #e79bc5; --on-accent: #1b161e;
+    --ok: #6fd6a0; --ok-soft: #1f3329; --warn: #f39a74; --warn-soft: #3a2520;
+    --p1: #7fb4ec; --p2: #f0a072; --map-bg: #2c2430; --map-street: #3e3444; --park: #2c4232; --water: #263a52; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.45;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 32px 48px;
+  }
+  main { max-width: 760px; margin: 0 auto; display: grid; gap: 20px; }
+
+  header h1 { font-family: var(--display); font-weight: 800; font-size: clamp(2rem, 6vw, 2.8rem); letter-spacing: -0.02em; margin: 0; color: var(--accent); text-wrap: balance; }
+  header p { margin: 4px 0 0; color: var(--muted); max-width: 52ch; }
+
+  .people { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .people { grid-template-columns: 1fr; } }
+  .person { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+  .person h2 { font-family: var(--display); font-weight: 600; font-size: 1.2rem; margin: 0; }
+
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 6px; }
+  legend, .label { font-size: 0.78rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 0; margin-bottom: 6px; }
+  .pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .pills input { position: absolute; opacity: 0; pointer-events: none; }
+  .pills label {
+    text-align: center; padding: 9px 4px; border-radius: 10px; cursor: pointer; font-weight: 500;
+    background: var(--soft); border: 1px solid transparent; transition: background .15s, color .15s;
+  }
+  .pills label:hover { border-color: var(--line); }
+  .pills input:checked + label { background: var(--accent); color: var(--on-accent); }
+  .pills input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .money { display: flex; align-items: center; background: var(--soft); border-radius: 10px; padding-left: 12px; border: 1px solid transparent; }
+  .money:focus-within { border-color: var(--accent); }
+  .money span { color: var(--muted); font-weight: 600; }
+  .money input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--fg); font: 600 1.1rem var(--body); padding: 9px 8px; font-variant-numeric: tabular-nums; outline: none; }
+  .money small { color: var(--muted); padding-right: 12px; white-space: nowrap; }
+
+  #find {
+    padding: 15px; font: 600 1.05rem var(--body); color: var(--on-accent); background: var(--accent);
+    border: none; border-radius: 12px; cursor: pointer; transition: background .15s, transform .1s;
+  }
+  #find:hover { background: var(--accent-hover); }
+  #find:active { transform: scale(0.99); }
+  #find:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  #result { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; gap: 16px; }
+  #result .headline { font-family: var(--display); font-weight: 800; font-size: 1.5rem; margin: 0; text-wrap: balance; }
+  #result .sub { margin: -10px 0 0; color: var(--muted); }
+  .checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .check { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; padding: 12px; border-radius: 12px; background: var(--ok-soft); }
+  .check.bad { background: var(--warn-soft); }
+  .icon { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--ok); color: var(--surface); }
+  .bad .icon { background: var(--warn); }
+  .check strong { display: block; }
+  .check p { margin: 2px 0 0; color: var(--muted); }
+  .fixes { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .fixes button {
+    font: 600 0.9rem var(--body); padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    background: var(--surface); color: var(--fg); border: 1px solid var(--line);
+  }
+  .fixes button:hover { border-color: var(--warn); }
+  .fixes button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .mapcard { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 22px; display: grid; gap: 14px; }
+  .mapcard h2 { font-family: var(--display); font-weight: 600; font-size: 1.2rem; margin: 0; }
+  .mapcard > div > p { margin: 2px 0 0; color: var(--muted); }
+  #map { width: 100%; height: auto; display: block; border-radius: 12px; background: var(--map-bg); touch-action: none; user-select: none; }
+  #map .street { stroke: var(--map-street); stroke-width: 7; stroke-linecap: round; }
+  #map .park { fill: var(--park); }
+  #map .water { fill: none; stroke: var(--water); stroke-width: 18; stroke-linecap: round; }
+  #map .maplabel { fill: var(--muted); font: 600 11px var(--body); letter-spacing: .05em; text-transform: uppercase; }
+  #map .route { fill: none; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2 9; }
+  #map .r1 { stroke: var(--p1); } #map .r2 { stroke: var(--p2); }
+  #map .pin { cursor: grab; } #map .pin:active { cursor: grabbing; }
+  #map .pin circle { stroke: var(--surface); stroke-width: 3; }
+  #map .pin text { fill: var(--surface); font: 800 13px var(--body); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  #map .spot rect { fill: var(--accent); stroke: var(--surface); stroke-width: 3; }
+  #map .spot text { fill: var(--on-accent); font: 700 12px var(--body); text-anchor: middle; dominant-baseline: central; }
+  .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  @media (max-width: 500px) { .legend { grid-template-columns: 1fr; } }
+  .leg { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--soft); font-variant-numeric: tabular-nums; }
+  .dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+  .leg strong { display: block; }
+  .leg span { color: var(--muted); font-size: 0.9rem; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    #result.pop { animation: pop .25s ease-out; }
+    @keyframes pop { from { transform: translateY(4px); opacity: .6; } to { transform: none; opacity: 1; } }
+  }
+</style>
 </head>
 <body>
-  <main>
-    <h1>🍽️ Dinner for Two</h1>
-    <p class="tagline">Enter both preferences and find a plan in one click.</p>
 
-    <div class="people">
-      <div class="card">
-        <h2>Person 1</h2>
-        <label for="day1">Preferred day</label>
-        <select id="day1"><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
-        <label for="cuisine1">Cuisine</label>
-        <select id="cuisine1"><option>Italian</option><option>Japanese</option><option>Any</option></select>
-        <label for="budget1">Max budget per person ($)</label>
-        <input id="budget1" type="number" min="1" value="40">
-      </div>
+<main>
+  <header>
+    <h1>Dinner for Two</h1>
+    <p>Each person picks a day, a cuisine and a budget. We'll find the plan that works for both of you.</p>
+  </header>
 
-      <div class="card">
-        <h2>Person 2</h2>
-        <label for="day2">Preferred day</label>
-        <select id="day2"><option>Friday</option><option>Saturday</option><option>Sunday</option></select>
-        <label for="cuisine2">Cuisine</label>
-        <select id="cuisine2"><option>Italian</option><option>Japanese</option><option>Any</option></select>
-        <label for="budget2">Max budget per person ($)</label>
-        <input id="budget2" type="number" min="1" value="30">
-      </div>
+  <div class="people" id="people"></div>
+
+  <button id="find" type="button">Find Our Dinner Plan</button>
+
+  <section id="result" aria-live="polite"></section>
+
+  <section class="mapcard">
+    <div>
+      <h2>Meeting map</h2>
+      <p>Drag pins 1 and 2 to roughly where each of you starts. Your dinner spot moves to a fair point in between. This is a sketch map, not real streets.</p>
     </div>
+    <svg id="map" viewBox="0 0 600 300" role="img" aria-label="Sketch map with each person's route to the dinner spot"></svg>
+    <div class="legend" id="routeInfo"></div>
+  </section>
+</main>
 
-    <button id="find">Find Our Dinner Plan</button>
+<script>
+  var DAYS = ['Friday', 'Saturday', 'Sunday'];
+  var CUISINES = ['Italian', 'Japanese', 'Any'];
+  var START = [
+    { day: 'Saturday', cuisine: 'Italian', budget: 40 },
+    { day: 'Saturday', cuisine: 'Any', budget: 30 }
+  ];
 
-    <div id="result" class="card"></div>
-  </main>
+  function pills(name, options, selected) {
+    return '<div class="pills">' + options.map(function (o) {
+      var id = name + '-' + o;
+      return '<input type="radio" name="' + name + '" id="' + id + '" value="' + o + '"' + (o === selected ? ' checked' : '') + '>' +
+             '<label for="' + id + '">' + o + '</label>';
+    }).join('') + '</div>';
+  }
 
-  <script>
-    function value(id) { return document.getElementById(id).value; }
+  document.getElementById('people').innerHTML = START.map(function (p, i) {
+    var n = i + 1;
+    return '<section class="person"><h2>Person ' + n + '</h2>' +
+      '<fieldset><legend>Preferred day</legend>' + pills('day' + n, DAYS, p.day) + '</fieldset>' +
+      '<fieldset><legend>Cuisine</legend>' + pills('cuisine' + n, CUISINES, p.cuisine) + '</fieldset>' +
+      '<div><label class="label" for="budget' + n + '">Max budget</label>' +
+      '<div class="money"><span>$</span><input id="budget' + n + '" type="number" min="1" step="5" inputmode="numeric" value="' + p.budget + '"><small>per person</small></div></div>' +
+      '</section>';
+  }).join('');
 
-    document.getElementById('find').addEventListener('click', function () {
-      var day1 = value('day1'), day2 = value('day2');
-      var cuisine1 = value('cuisine1'), cuisine2 = value('cuisine2');
-      var budget1 = Number(value('budget1')), budget2 = Number(value('budget2'));
-      var problems = [];
+  function picked(name) { return document.querySelector('input[name="' + name + '"]:checked').value; }
+  function setBoth(field, value) {
+    [1, 2].forEach(function (n) { document.getElementById(field + n + '-' + value).checked = true; });
+  }
+  function fixButtons(field, values) {
+    return '<div class="fixes">' + values.map(function (v) {
+      return '<button type="button" data-field="' + field + '" data-value="' + v + '">Both pick ' + v + '</button>';
+    }).join('') + '</div>';
+  }
+  function row(ok, title, detail, extra) {
+    return '<li class="check' + (ok ? '' : ' bad') + '"><span class="icon" aria-hidden="true">' + (ok ? '✓' : '!') + '</span>' +
+      '<div><strong>' + title + '</strong><p>' + detail + '</p>' + (extra || '') + '</div></li>';
+  }
 
-      if (day1 !== day2) {
-        problems.push('Day: Person 1 wants ' + day1 + ', Person 2 wants ' + day2 + '. Pick the same day.');
-      }
+  function findPlan() {
+    var d1 = picked('day1'), d2 = picked('day2');
+    var c1 = picked('cuisine1'), c2 = picked('cuisine2');
+    var b1 = Number(document.getElementById('budget1').value);
+    var b2 = Number(document.getElementById('budget2').value);
+    var rows = [], issues = 0;
 
-      var cuisine;
-      if (cuisine1 === cuisine2) cuisine = cuisine1 === 'Any' ? 'Any (your choice!)' : cuisine1;
-      else if (cuisine1 === 'Any') cuisine = cuisine2;
-      else if (cuisine2 === 'Any') cuisine = cuisine1;
-      else problems.push('Cuisine: ' + cuisine1 + ' vs. ' + cuisine2 + '. One of you could switch or choose "Any".');
+    // Day: must be the same
+    if (d1 === d2) rows.push(row(true, d1, 'You both picked ' + d1 + '.'));
+    else { issues++; rows.push(row(false, 'Different days', 'Person 1 wants ' + d1 + ', Person 2 wants ' + d2 + '. Agree on one day.', fixButtons('day', [d1, d2]))); }
 
-      if (!(budget1 > 0) || !(budget2 > 0)) {
-        problems.push('Budget: both people need to enter a budget greater than $0.');
-      }
+    // Cuisine: same, or one person is open to anything
+    var cuisine = null;
+    if (c1 === c2) cuisine = c1;
+    else if (c1 === 'Any') cuisine = c2;
+    else if (c2 === 'Any') cuisine = c1;
+    if (cuisine === 'Any') rows.push(row(true, 'Any cuisine', 'You are both open to anything. Pick whatever looks good.'));
+    else if (cuisine) rows.push(row(true, cuisine, c1 === c2 ? 'You both want ' + cuisine + '.' : 'One of you wants ' + cuisine + ' and the other is open to anything.'));
+    else { issues++; rows.push(row(false, 'Different cuisines', c1 + ' vs. ' + c2 + '. One of you can switch, or choose "Any".', fixButtons('cuisine', [c1, c2, 'Any']))); }
 
-      var result = document.getElementById('result');
-      result.style.display = 'block';
+    // Budget: shared budget is the lower of the two
+    var budget = Math.min(b1, b2);
+    if (b1 > 0 && b2 > 0) {
+      var detail = b1 === b2 ? 'You both set $' + budget + '.' : 'The lower of $' + b1 + ' and $' + b2 + ', so it works for both of you.';
+      rows.push(row(true, 'Up to $' + budget + ' each', detail + ' About $' + budget * 2 + ' for the table.'));
+    } else {
+      issues++;
+      rows.push(row(false, 'Budget missing', 'Both people need a budget above $0.'));
+    }
 
-      if (problems.length) {
-        result.className = 'card conflict';
-        result.innerHTML = '<h2>⚠️ Almost there — a few things to adjust</h2><ul>' +
-          problems.map(function (p) { return '<li>' + p + '</li>'; }).join('') + '</ul>';
-      } else {
-        result.className = 'card ok';
-        result.innerHTML = '<h2>🎉 Your dinner plan</h2><ul>' +
-          '<li><strong>Day:</strong> ' + day1 + '</li>' +
-          '<li><strong>Cuisine:</strong> ' + cuisine + '</li>' +
-          '<li><strong>Shared budget:</strong> up to $' + Math.min(budget1, budget2) + ' per person</li>' +
-          '</ul>';
-      }
-    });
-  </script>
+    var headline = issues
+      ? (issues === 1 ? 'One thing to adjust' : issues + ' things to adjust')
+      : 'Dinner is on: ' + d1 + ', ' + (cuisine === 'Any' ? 'any cuisine' : cuisine) + ', up to $' + budget + ' each';
+    var sub = issues ? 'Tap a suggestion to fix it, then check again.' : 'This plan fits both of your preferences.';
+
+    var result = document.getElementById('result');
+    result.innerHTML = '<h2 class="headline">' + headline + '</h2><p class="sub">' + sub + '</p><ul class="checks">' + rows.join('') + '</ul>';
+    result.classList.remove('pop'); void result.offsetWidth; result.classList.add('pop');
+
+    spotLabel = (issues || cuisine === 'Any') ? 'Dinner spot' : cuisine + ' spot';
+    drawMap();
+  }
+
+  // Sketch map: a street grid with one block = 50 units, about 2 minutes on foot
+  var BLOCK = 50, MIN_PER_BLOCK = 2;
+  var pins = [{ x: 100, y: 250 }, { x: 500, y: 50 }];
+  var spotLabel = 'Dinner spot';
+  var map = document.getElementById('map');
+  var NS = 'http://www.w3.org/2000/svg';
+
+  var base = '';
+  for (var gx = 0; gx <= 600; gx += BLOCK) base += '<line class="street" x1="' + gx + '" y1="0" x2="' + gx + '" y2="300"/>';
+  for (var gy = 0; gy <= 300; gy += BLOCK) base += '<line class="street" x1="0" y1="' + gy + '" x2="600" y2="' + gy + '"/>';
+  base += '<path class="water" d="M-10 285 C 120 262, 220 300, 330 282 S 520 262, 610 276"/>' +
+    '<rect class="park" x="354" y="154" width="92" height="42" rx="6"/>' +
+    '<text class="maplabel" x="400" y="175" text-anchor="middle" dominant-baseline="central">Park</text>';
+  map.innerHTML = base + '<g id="dyn"></g>';
+
+  function snap(v, lo, hi) { return Math.min(hi, Math.max(lo, Math.round(v / BLOCK) * BLOCK)); }
+
+  function drawMap() {
+    var a = pins[0], b = pins[1];
+    var m = { x: snap((a.x + b.x) / 2, 50, 550), y: snap((a.y + b.y) / 2, 50, 250) };
+    var w = spotLabel.length * 7.5 + 24;
+    document.getElementById('dyn').innerHTML =
+      '<path class="route r1" d="M' + a.x + ' ' + a.y + ' H' + m.x + ' V' + m.y + '"/>' +
+      '<path class="route r2" d="M' + b.x + ' ' + b.y + ' V' + m.y + ' H' + m.x + '"/>' +
+      '<g class="spot"><rect x="' + (m.x - w / 2) + '" y="' + (m.y - 14) + '" width="' + w + '" height="28" rx="14"/>' +
+      '<text x="' + m.x + '" y="' + m.y + '">' + spotLabel + '</text></g>' +
+      pins.map(function (p, i) {
+        return '<g class="pin" data-i="' + i + '"><circle cx="' + p.x + '" cy="' + p.y + '" r="15" fill="var(--p' + (i + 1) + ')"/>' +
+          '<text x="' + p.x + '" y="' + p.y + '">' + (i + 1) + '</text></g>';
+      }).join('');
+
+    document.getElementById('routeInfo').innerHTML = pins.map(function (p, i) {
+      var blocks = (Math.abs(p.x - m.x) + Math.abs(p.y - m.y)) / BLOCK;
+      var text = blocks === 0 ? 'Starts right at the spot' : blocks + (blocks === 1 ? ' block' : ' blocks') + ' · about ' + blocks * MIN_PER_BLOCK + ' min walk';
+      return '<div class="leg"><span class="dot" style="background:var(--p' + (i + 1) + ')"></span><div><strong>Person ' + (i + 1) + '</strong><span>' + text + '</span></div></div>';
+    }).join('');
+  }
+
+  var dragging = null;
+  function toMap(e) {
+    var pt = map.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+    return pt.matrixTransform(map.getScreenCTM().inverse());
+  }
+  map.addEventListener('pointerdown', function (e) {
+    var pin = e.target.closest('.pin');
+    if (!pin) return;
+    e.preventDefault();
+    dragging = Number(pin.dataset.i);
+    map.setPointerCapture(e.pointerId);
+  });
+  map.addEventListener('pointermove', function (e) {
+    if (dragging === null) return;
+    var p = toMap(e);
+    pins[dragging] = { x: snap(p.x, 0, 600), y: snap(p.y, 0, 300) };
+    drawMap();
+  });
+  map.addEventListener('pointerup', function () { dragging = null; });
+  map.addEventListener('pointercancel', function () { dragging = null; });
+
+  document.getElementById('find').addEventListener('click', findPlan);
+  document.getElementById('result').addEventListener('click', function (e) {
+    var btn = e.target.closest('button[data-field]');
+    if (!btn) return;
+    setBoth(btn.dataset.field, btn.dataset.value);
+    findPlan();
+  });
+  findPlan();
+</script>
 </body>
 </html>
